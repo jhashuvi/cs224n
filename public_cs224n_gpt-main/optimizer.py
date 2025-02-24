@@ -61,7 +61,32 @@ class AdamW(Optimizer):
                 ###
                 ###       Refer to the default project handout for more details.
                 ### YOUR CODE HERE
-                raise NotImplementedError
+                #NOT FULLY IMPLEMENTED STILL WORKING ON IT!! :)
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+                beta1, beta2 = group['betas']
+                eps = group['eps']
+                lr = group['lr']
+                weight_decay = group['weight_decay']
+                correct_bias = group['correct_bias']
+                state['step'] += 1
+                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+
+                if correct_bias:
+                    bias_correction1 = 1 - beta1 ** state['step']
+                    bias_correction2 = 1 - beta2 ** state['step']
+                    step_size = lr * math.sqrt(bias_correction2) / bias_correction1
+                else:
+                    step_size = lr
+                
+                denom = exp_avg_sq.sqrt().add_(eps)
+                p.data.addcdiv_(exp_avg, denom, value=-step_size)
+                if weight_decay != 0:
+                    p.data.add_(p.data, alpha=-lr * weight_decay)
+
+
+                
+            
 
 
         return loss
