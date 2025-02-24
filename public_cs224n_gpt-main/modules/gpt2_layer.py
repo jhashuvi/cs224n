@@ -23,7 +23,7 @@ class GPT2Layer(nn.Module):
 
   def add(self, input, output, dense_layer, dropout):
     """
-    Implement this helper method for the forward function.
+    TODO: Implement this helper method for the forward function.
       - This function is applied after the multi-head attention layer as well as after the feed forward layer.
       - GPT-2 layer applies dropout to the transformed output of each sub-layer,
         before it is added to the sub-layer input. WE DO NOT APPLY THE LAYER NORM
@@ -37,23 +37,25 @@ class GPT2Layer(nn.Module):
 
   def forward(self, hidden_states, attention_mask):
     """
-    Implement the forward pass. Some key points to consider:
+    TODO: Implement the forward pass. Some key points to consider:
       - A multi-head attention layer (CausalSelfAttention) that computes self-attention based on masked inputs.
       - Layer normalization applied *before* the attention layer and feed-forward layer.
       - Apply dropout, residual connection, and layer normalization according to the plot in the assignment. (Use self.add)
       - A feed-forward layer that applies transformations to further refine the hidden states.
     """
     norm_hidden_states = self.attention_layer_norm(hidden_states)
-    attention_output = self.self_attention(norm_hidden_states, attention_mask)
-
-    hidden_states = self.add(hidden_states, attention_output, self.attention_dense, self.attention_dropout)
-
-    # layer norm
-    norm_hidden_states = self.out_layer_norm(norm_hidden_states)
-
-    # feed-forward
+    attn_output = self.self_attention(norm_hidden_states, attention_mask)
+    # print("norm_hidden_states", norm_hidden_states.shape)
+    # print("attention_output", attention_output.shape)
+    
+    hidden_states = self.add(hidden_states, attn_output, self.attention_dense, self.attention_dropout)
+    
+    norm_hidden_states = self.out_layer_norm(hidden_states)
+    
+    # print("norm_hidden_states", norm_hidden_states.shape)
+    # print("ff_output", ff_output.shape)
     ff_output = self.interm_af(self.interm_dense(norm_hidden_states))  
-    ff_ouput = self.out_dense(ff_output)
-
-    hidden_states = self.add(hidden_states, ff_ouput, self.out_dense, self.out_dropout)
+  
+    hidden_states = self.add(hidden_states, ff_output, self.out_dense, self.out_dropout)
+    
     return hidden_states
