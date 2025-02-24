@@ -72,7 +72,7 @@ class ParaphraseGPT(nn.Module):
 
     'Takes a batch of sentences and produces embeddings for them.'
     ### YOUR CODE HERE
-    #OUTPUTS LOGITS
+    #THIS FUNCTION OUTPUTS LOGITS
     output = self.gpt(input_ids, attention_mask)
     # get pos last nonmasked token per seq
     last_token_pos = attention_mask.sum(dim=1) - 1
