@@ -61,32 +61,50 @@ class AdamW(Optimizer):
                 ###
                 ###       Refer to the default project handout for more details.
                 ### YOUR CODE HERE
-                #NOT FULLY IMPLEMENTED STILL WORKING ON IT!! :)
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                #get lr, betas, eps, weight_decay from 'group'
+                #init state, save in the state dict. keeps shape
+                if len(state) == 0:
+                    state['step'] = 0
+                    state['m_t'] = torch.zeros_like(p.data)
+                    state['v_t'] = torch.zeros_like(p.data)
+                elif 'm_t' not in state:
+                    state['m_t'] = torch.zeros_like(p.data)
+                elif 'v_t' not in state:
+                    state['v_t'] = torch.zeros_like(p.data)
+                elif 'step' not in state:
+                    state['step'] = 0
+                
+                #get params to update
+                mt, vt = state['m_t'], state['v_t']
                 beta1, beta2 = group['betas']
                 eps = group['eps']
-                lr = group['lr']
                 weight_decay = group['weight_decay']
                 correct_bias = group['correct_bias']
+                #update time
                 state['step'] += 1
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
+                #update biased moments
+                mt.mul_(beta1).add_(grad, alpha=1 - beta1)
+                vt.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+
+                #now do efficient method bias correction
+                #bias correction should be default, but checking anyway for robustness
                 if correct_bias:
+                    # α_t ← α · sqrt(1 − β^t_2)/(1 − β^t_1)
                     bias_correction1 = 1 - beta1 ** state['step']
                     bias_correction2 = 1 - beta2 ** state['step']
-                    step_size = lr * math.sqrt(bias_correction2) / bias_correction1
+                    alpha_t = alpha * math.sqrt(bias_correction2) / bias_correction1
                 else:
-                    step_size = lr
+                    alpha_t = alpha
                 
-                denom = exp_avg_sq.sqrt().add_(eps)
-                p.data.addcdiv_(exp_avg, denom, value=-step_size)
+                #update params: θ_t ← θ_(t−1)− α_t · m_t/(sqrt(v_t)+ ϵ)
+                denom = vt.sqrt().add_(eps)
+                #using addcdiv to perform op in place for efficiency
+                p.data.addcdiv_(mt, denom, value=-alpha_t)
+
+                #Apply weight decay after the main gradient-based updates.
                 if weight_decay != 0:
-                    p.data.add_(p.data, alpha=-lr * weight_decay)
-
-
-                
-            
-
+                    p.data.add_(p.data, alpha=-alpha * weight_decay)
 
         return loss
