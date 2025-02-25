@@ -74,15 +74,8 @@ class ParaphraseGPT(nn.Module):
     ### YOUR CODE HERE
     #THIS FUNCTION OUTPUTS LOGITS
     output = self.gpt(input_ids, attention_mask)
-    # get pos last nonmasked token per seq
-    last_token_pos = attention_mask.sum(dim=1) - 1
-    #get indices for batch
-    b_indices = torch.arange(input_ids.shape[0], device=input_ids.device)
-    #get last hidden state per seqq
-    last_hid_states = output[b_indices, last_token_pos]
-    #get logits
-    logits = self.paraphrase_detection_head(last_hid_states)
-    
+    last_token = output['last_token']
+    logits = self.gpt.hidden_state_to_token(last_token)
     return logits
 
 
