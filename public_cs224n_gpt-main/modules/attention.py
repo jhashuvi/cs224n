@@ -33,19 +33,26 @@ class CausalSelfAttention(nn.Module):
 
   # MY CODE 
   def attention(self, key, query, value, attention_mask):
+    #  [batch_size, heads, sequence_len, d_h]
     attn_scores = torch.matmul(query, key.transpose(-1, -2)) / (self.attention_head_size ** 0.5)
     
     seq_len = query.size(-2)
-    causal_mask = torch.triu(torch.ones((1, 1, seq_len, seq_len), device=attention_mask.device), diagonal=1).bool()
-    causal_mask = causal_mask * -1e4
+    causal_mask = torch.triu(torch.ones((1, 1, seq_len, seq_len), device=attention_mask.device),  diagonal=1).bool()
+    print("causal_mask: ", causal_mask)
+    causal_mask = causal_mask * -1e9
 
     attn_scores += attention_mask + causal_mask
-    attn_scores = self.dropout(attn_scores)
-    attn_probs = torch.softmax(attn_scores, dim=-1)
+  
+    # dropout and softmax
     
-    attn_output = torch.matmul(attn_probs, value)
-    attn_output = rearrange(attn_output, 'b h t d -> b t (h d)')
-    return attn_output
+    output = torch.softmax(attn_scores, dim=-1)
+    output = self.dropout(output)
+    
+    output = torch.matmul(output, value)
+
+    # [batch_size,  sequence_len, heads, d_h] -> [batch_size,  sequence_len, heads * d_h] 
+    output = rearrange(output, 'b h t d -> b t (h d)')
+    return output
   
   def forward(self, hidden_states, attention_mask):
     """
