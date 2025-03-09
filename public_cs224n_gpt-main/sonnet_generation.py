@@ -61,6 +61,7 @@ class SonnetGPT(nn.Module):
     not just the distribution over next tokens for the last token!
     """
     ### YOUR CODE HERE
+    #hi testing commit
     raise NotImplementedError
 
 
