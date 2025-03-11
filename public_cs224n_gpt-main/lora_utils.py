@@ -18,17 +18,18 @@ def apply_lora_to_gpt2(model, rank=8, alpha=16, dropout=0.1):
     num_layers = len(model.gpt_layers) if hasattr(model, 'gpt_layers') else 0
     
     #identify the gpt-2 layers that should use lora
-    target_modules = []
-    for i in range(num_layers): 
-        target_modules.extend([
-            f"gpt_layers.{i}.self_attention.query",
-            f"gpt_layers.{i}.self_attention.key",
-            f"gpt_layers.{i}.self_attention.value",
-            f"gpt_layers.{i}.attention_dense",
-            f"gpt_layers.{i}.interm_dense",
-            f"gpt_layers.{i}.out_dense"
-        ])
-    
+    if hasattr(model, 'transformer') and hasattr(model.transformer, 'h'):
+        num_layers = len(model.transformer.h)
+        target_modules = []
+        
+        for i in range(num_layers):
+            target_modules.extend([
+                f"transformer.h.{i}.attn.c_attn",
+                f"transformer.h.{i}.attn.c_proj",
+                f"transformer.h.{i}.mlp.c_fc",
+                f"transformer.h.{i}.mlp.c_proj"
+            ])
+    print(f"Found {len(target_modules)} target modules")
     lora_config = LoraConfig(
         r=rank,
         lora_alpha=alpha,

@@ -9,6 +9,9 @@ python paraphrase_detection_lora.py --use_gpu
 python paraphrase_detection_lora.py --use_gpu --use_lora
 """
 
+
+
+
 import argparse
 import random
 import torch
@@ -18,6 +21,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from transformers import AutoModelForCausalLM
 
 from datasets import (
   ParaphraseDetectionDataset,
@@ -47,7 +51,8 @@ class ParaphraseGPT(nn.Module):
 
   def __init__(self, args):
     super().__init__()
-    self.gpt = GPT2Model.from_pretrained(model=args.model_size, d=args.d, l=args.l, num_heads=args.num_heads)
+    #self.gpt = GPT2Model.from_pretrained(model=args.model_size, d=args.d, l=args.l, num_heads=args.num_heads)
+    self.gpt = AutoModelForCausalLM.from_pretrained(args.model_size)
     self.paraphrase_detection_head = nn.Linear(args.d, 2)  # Paraphrase detection has two outputs: 1 (yes) or 0 (no).
     
     #case 1: using lora-improved gpt2 model 
@@ -71,9 +76,23 @@ class ParaphraseGPT(nn.Module):
     """
     Predict if two sentences are paraphrases of each other.
     """
-    output = self.gpt(input_ids, attention_mask)
-    last_token = output['last_token']
-    logits = self.paraphrase_detection_head(last_token)
+    output = self.gpt(input_ids, attention_mask, output_hidden_states=True)
+    #print(output.hidden_states.shape)
+    #last_token = output['last_token']
+    #logits = self.paraphrase_detection_head(last_token)
+    
+    #is shape batch_size, seq_len, hidden_size
+    last = output.hidden_states[-1] 
+    batch_size = input_ids.shape[0]
+    sequence_lengths = attention_mask.sum(dim=1) - 1
+    
+    #get last token from eqch seq in batch and stack in new tensor
+    last_token = torch.stack([last[i, sequence_lengths[i], :] for i in range(batch_size)])
+    
+    #print(last_token.shape)
+        
+    logits = self.gpt.lm_head(last_token)
+    
     return logits
 
 

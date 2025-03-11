@@ -38,7 +38,7 @@ class CausalSelfAttention(nn.Module):
     
     seq_len = query.size(-2)
     causal_mask = torch.triu(torch.ones((1, 1, seq_len, seq_len), device=attention_mask.device),  diagonal=1).bool()
-    print("causal_mask: ", causal_mask)
+    #print("causal_mask: ", causal_mask)
     causal_mask = causal_mask * -1e9
 
     attn_scores += attention_mask + causal_mask
